@@ -32,8 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 
-### integration ###
+### integration and init ###
 **/test/java/com/kutay/scraper/integration/**
+**/main/java/com/kutay/scraper/init/**
 
 ### Maven ###
 maven-wrapper.jar
