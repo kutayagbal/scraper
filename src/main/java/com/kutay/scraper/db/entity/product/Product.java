@@ -63,7 +63,7 @@ public class Product {
 	private List<StatusHistory> statusHistory = new ArrayList<>();
 
 	@OneToMany(cascade = CascadeType.ALL)
-	@JoinColumn(name = "product")
+	@JoinColumn(name = "image")
 	private List<ApiEndpoint> imageApiEndpoints = new ArrayList<>();
 
 	public Product() {

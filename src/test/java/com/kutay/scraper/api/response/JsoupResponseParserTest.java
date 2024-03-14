@@ -138,8 +138,7 @@ class JsoupResponseParserTest {
                                 null, null, List.of(testAlternativeResponsePath));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0,
-                                                mockDocument),
+                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0, mockDocument),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 
@@ -149,8 +148,7 @@ class JsoupResponseParserTest {
                                 null, null, Collections.emptyList());
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0,
-                                                mockDocument),
+                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0, mockDocument),
                                 String.format(JsoupResponseParser.ELEMENT_COULD_NOT_BE_PARSED, mockAPIResponsePath0));
         }
 

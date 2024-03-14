@@ -17,7 +17,7 @@ public class ApiResponseFunction {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private API_RESPONSE_FUNCTION_TYPE type;
+    private API_RESPONSE_FUNCTION_TYPE functionType;
 
     @Enumerated(EnumType.STRING)
     private API_FUNCTION_INDEX_TYPE resultIndexType;
@@ -31,13 +31,13 @@ public class ApiResponseFunction {
     }
 
     public ApiResponseFunction(Integer functionIndex, String keyParameter, String valueParameter, Integer resultIndex,
-            API_RESPONSE_FUNCTION_TYPE type,
+            API_RESPONSE_FUNCTION_TYPE functionType,
             API_FUNCTION_INDEX_TYPE resultIndexType) {
         this.functionIndex = functionIndex;
         this.keyParameter = keyParameter;
         this.valueParameter = valueParameter;
         this.resultIndex = resultIndex;
-        this.type = type;
+        this.functionType = functionType;
         this.resultIndexType = resultIndexType;
     }
 
@@ -45,8 +45,8 @@ public class ApiResponseFunction {
         return functionIndex;
     }
 
-    public API_RESPONSE_FUNCTION_TYPE getType() {
-        return type;
+    public API_RESPONSE_FUNCTION_TYPE getFunctionType() {
+        return functionType;
     }
 
     public String getKeyParameter() {
@@ -67,13 +67,6 @@ public class ApiResponseFunction {
 
     public API_FUNCTION_INDEX_TYPE getResultIndexType() {
         return resultIndexType;
-    }
-
-    @Override
-    public String toString() {
-        return "ApiResponseFunction [type=" + type + ", resultIndexType=" + resultIndexType + ", functionIndex="
-                + functionIndex + ", keyParameter=" + keyParameter + ", valueParameter=" + valueParameter
-                + ", resultIndex=" + resultIndex + "]";
     }
 
 }

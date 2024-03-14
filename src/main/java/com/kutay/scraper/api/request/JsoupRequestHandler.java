@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.util.LinkedMultiValueMap;
@@ -19,13 +21,16 @@ import com.kutay.scraper.db.entity.site.ApiParameter;
 import com.kutay.scraper.util.ScraperException;
 
 public class JsoupRequestHandler implements ApiRequestHandler {
+    private static final Log logger = LogFactory.getLog(JsoupRequestHandler.class);
     protected static final String COULD_NOT_GET_DOCUMENT = "Can not get document for URL: %s";
     public static final String COULD_NOT_CONVERT_TO_URL = "API Endpoint could not be converted to URL. APIEndpoint: %s";
+    public static final String HANDLING_URL = "Handling URL: %s";
 
     @Override
     public ApiResponseParser handle(ApiRequest request) throws ScraperException {
         Document document = null;
         String url = buildURL(request);
+        logger.info(String.format(HANDLING_URL, url));
         try {
             document = Jsoup.connect(url).cookie("language-preference", JsoupResponseParser.LANGUAGE).get();
         } catch (Exception ex) {

@@ -16,7 +16,7 @@ public class ApiStringFunction {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    private API_STRING_FUNCTION_TYPE type;
+    private API_STRING_FUNCTION_TYPE functionType;
 
     private Integer functionIndex;
     private String keyParameter;
@@ -27,9 +27,9 @@ public class ApiStringFunction {
     public ApiStringFunction() {
     }
 
-    public ApiStringFunction(API_STRING_FUNCTION_TYPE type, Integer functionIndex, String keyParameter,
+    public ApiStringFunction(API_STRING_FUNCTION_TYPE functionType, Integer functionIndex, String keyParameter,
             String valueParameter, Integer keyIndex, Integer valueIndex) {
-        this.type = type;
+        this.functionType = functionType;
         this.functionIndex = functionIndex;
         this.keyParameter = keyParameter;
         this.valueParameter = valueParameter;
@@ -41,8 +41,8 @@ public class ApiStringFunction {
         return id;
     }
 
-    public API_STRING_FUNCTION_TYPE getType() {
-        return type;
+    public API_STRING_FUNCTION_TYPE getFunctionType() {
+        return functionType;
     }
 
     public Integer getFunctionIndex() {

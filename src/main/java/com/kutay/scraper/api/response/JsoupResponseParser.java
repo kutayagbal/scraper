@@ -35,6 +35,7 @@ public class JsoupResponseParser extends ApiResponseParser {
     protected static final String ELEMENT_COULD_NOT_BE_PARSED = "Element could not be parsed.";
     protected static final String INVALID_URL = "Invalid URL: %s";
     protected static final String CANNOT_CREATE_PRODUCT_API_REQUEST = "APIRequest could not be created for product. URL: %s";
+    protected static final String CANNOT_CREATE_IMAGE_ENDPOINT = "Image endpoint could not be created. URL: %s";
 
     public JsoupResponseParser(Object response) {
         super(response);
@@ -99,7 +100,7 @@ public class JsoupResponseParser extends ApiResponseParser {
     protected Element getAPIElement(ApiResponseFunction apiResponseFunction, Element apiElement)
             throws ScraperException {
         Elements elems = null;
-        switch (apiResponseFunction.getType()) {
+        switch (apiResponseFunction.getFunctionType()) {
             case BY_ATTRIBUTE:
                 elems = apiElement.getElementsByAttribute(apiResponseFunction.getKeyParameter());
                 break;
@@ -178,7 +179,8 @@ public class JsoupResponseParser extends ApiResponseParser {
 
     protected Elements getAPIElements(ApiResponseFunction apiResponseFunction, Element apiElement)
             throws ScraperException {
-        switch (apiResponseFunction.getType()) {
+
+        switch (apiResponseFunction.getFunctionType()) {
             case BY_ATTRIBUTE_VALUE:
                 return apiElement.getElementsByAttributeValue(apiResponseFunction.getKeyParameter(),
                         apiResponseFunction.getValueParameter());
@@ -192,7 +194,7 @@ public class JsoupResponseParser extends ApiResponseParser {
                 return apiElement.getElementsMatchingOwnText(apiResponseFunction.getKeyParameter());
             default:
                 throw new ScraperException(
-                        String.format(WRONG_API_RESPONSE_FUNCTION_TYPE, apiResponseFunction.getType()));
+                        String.format(WRONG_API_RESPONSE_FUNCTION_TYPE, apiResponseFunction.getFunctionType()));
         }
     }
 
@@ -203,25 +205,38 @@ public class JsoupResponseParser extends ApiResponseParser {
 
         return productURLs.stream().map(urlStr -> {
             try {
-                return new ApiRequest(createProductEndpoint(urlStr), null);
+                return new ApiRequest(createEndpoint(urlStr, LANGUAGE), null);
             } catch (ScraperException ex) {
-                logger.error(
-                        String.format(CANNOT_CREATE_PRODUCT_API_REQUEST, urlStr, ex.getMessage()));
+                logger.warn(String.format(CANNOT_CREATE_PRODUCT_API_REQUEST, urlStr, ex.getMessage()));
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    private ApiEndpoint createProductEndpoint(String urlStr)
+    @Override
+    public List<ApiEndpoint> parseEndpoints(String fieldName) throws ScraperException {
+        List<String> parsedUrls = parseFields(fieldName);
+
+        return parsedUrls.stream().map(urlStr -> {
+            try {
+                return createEndpoint(urlStr, null);
+            } catch (ScraperException ex) {
+                logger.warn(String.format(CANNOT_CREATE_IMAGE_ENDPOINT, urlStr, ex.getMessage()));
+                return null;
+            }
+        }).filter(Objects::nonNull).collect(Collectors.toList());
+    }
+
+    private ApiEndpoint createEndpoint(String urlStr, String language)
             throws ScraperException {
         if (isValidUrl(urlStr)) {
             UriComponents uriComponents = UriComponentsBuilder.fromUriString(urlStr).build();
-            if (uriComponents.getPath().startsWith(LANGUAGE + "/")) {
+            if (language == null || uriComponents.getPath().startsWith(language + "/")) {
                 return new ApiEndpoint(null, null, uriComponents.getScheme(), uriComponents.getHost(),
                         uriComponents.getPort(), uriComponents.getPath(), null);
             } else {
                 return new ApiEndpoint(null, null, uriComponents.getScheme(), uriComponents.getHost(),
-                        uriComponents.getPort(), LANGUAGE + uriComponents.getPath(), null);
+                        uriComponents.getPort(), language + uriComponents.getPath(), null);
             }
 
         } else {

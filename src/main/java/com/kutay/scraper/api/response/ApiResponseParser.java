@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.kutay.scraper.api.request.ApiRequest;
+import com.kutay.scraper.db.entity.site.ApiEndpoint;
 import com.kutay.scraper.db.entity.site.ApiResponsePath;
 import com.kutay.scraper.db.entity.site.ApiStringFunction;
 import com.kutay.scraper.util.ScraperException;
@@ -26,6 +27,8 @@ public abstract class ApiResponseParser {
 
     public abstract List<ApiRequest> parseProductApiRequests()
             throws ScraperException;
+
+    public abstract List<ApiEndpoint> parseEndpoints(String fieldName) throws ScraperException;
 
     protected ApiResponsePath findApiResponsePath(String fieldName) throws ScraperException {
         if (apiResponsePaths != null && !apiResponsePaths.isEmpty()) {
@@ -55,7 +58,7 @@ public abstract class ApiResponseParser {
 
     protected String getApiString(ApiStringFunction apiStringFunction, String apiString) {
         String result = apiString;
-        switch (apiStringFunction.getType()) {
+        switch (apiStringFunction.getFunctionType()) {
             case SPLIT:
                 String[] strArr = apiString.split(apiStringFunction.getKeyParameter());
                 if (apiStringFunction.getKeyIndex() != null && apiStringFunction.getKeyIndex() < strArr.length) {

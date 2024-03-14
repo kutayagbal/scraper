@@ -50,7 +50,6 @@ class SearchScraperTest {
         private static ApiParameter testPagingApiParam;
 
         private static final String testErrorMessage = "testErrorMessage";
-        private static final String testSiteName = "testSiteName";
         private static final TRADE_TYPE SALE = TRADE_TYPE.SALE;
         private static final TRADE_TYPE RENT = TRADE_TYPE.RENT;
         private static final PRODUCT_TYPE HOUSE = PRODUCT_TYPE.HOUSE;
@@ -119,10 +118,6 @@ class SearchScraperTest {
 
                 testProductRequest = new ApiRequest(testProductEndpoint, null);
                 testProductRequest1 = new ApiRequest(testProductEndpoint1, null);
-
-                testScrapeRequest = new ScrapeRequest(testSiteName,
-                                SALE, HOUSE,
-                                null);
 
                 searchScraper = new SearchScraper(SALE, HOUSE, mockSite, mockRequestHandler,
                                 mockProductFactory);
@@ -332,8 +327,6 @@ class SearchScraperTest {
                 when(mockSearchResponseParser.parseProductApiRequests())
                                 .thenReturn(List.of(testProductRequest));
                 when(mockSearchResponseParser.parseField(SearchScraper.LAST_PAGE_NO_FIELD_NAME)).thenReturn("2");
-
-                testScrapeRequest = new ScrapeRequest(testSiteName, SALE, HOUSE, testRequestParameters);
 
                 List<ApiRequest> actualApiRequests = searchScraper.scrapeWithPaging(
                                 testSearchEndpoint, mockSearchResponseParser, testRequestParameters);

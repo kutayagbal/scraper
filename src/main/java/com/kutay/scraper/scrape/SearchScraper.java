@@ -30,6 +30,7 @@ public class SearchScraper extends Scraper {
     public static final String LAST_PAGE_NO_FIELD_NAME = "lastPageNo";
     public static final String PAGING_API_PARAMETER_NAME = "searchPagination";
     public static final String PRODUCT_API_REQUEST_COULD_NOT_BE_HANDLED = "Product API Request could not be handled APIRequest: %s";
+    public static final String PRODUCT_REQUESTS_PER_PAGE = "%s product requests for page %s";
 
     public SearchScraper(TRADE_TYPE tradeType, PRODUCT_TYPE productType, Site site, ApiRequestHandler apiRequestHandler,
             ProductFactory productFactory) {
@@ -46,6 +47,7 @@ public class SearchScraper extends Scraper {
 
         List<ApiRequest> productRequests = searchResponseParser.parseProductApiRequests();
         if (productRequests != null) {
+            logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, productRequests.size(), 1));
             totalProductRequests.addAll(productRequests);
         }
 
@@ -72,7 +74,7 @@ public class SearchScraper extends Scraper {
                 responseParser = requestHandler.handle(request);
                 responseParser.setApiResponsePaths(site.getApiResponsePaths());
             } catch (ScraperException e) {
-                logger.error(String.format(PRODUCT_API_REQUEST_COULD_NOT_BE_HANDLED, request), e);
+                logger.warn(String.format(PRODUCT_API_REQUEST_COULD_NOT_BE_HANDLED, request), e);
                 return null;
             }
 
@@ -111,6 +113,7 @@ public class SearchScraper extends Scraper {
                 }
 
                 ApiRequest searchRequest = null;
+                List<ApiRequest> requests = new ArrayList<>();
                 for (int i = 2; i <= lastPageNo; i++) {
                     parameters.put(PAGING_API_PARAMETER_NAME, List.of(String.valueOf(i)));
 
@@ -118,8 +121,9 @@ public class SearchScraper extends Scraper {
                     searchResponseParser = requestHandler.handle(searchRequest);
                     searchResponseParser.setApiResponsePaths(site.getApiResponsePaths());
 
-                    productRequests.addAll(searchResponseParser
-                            .parseProductApiRequests());
+                    requests = searchResponseParser.parseProductApiRequests();
+                    logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, requests.size(), i));
+                    productRequests.addAll(requests);
                 }
             }
         }

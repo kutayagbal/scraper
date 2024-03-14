@@ -19,6 +19,8 @@ import com.kutay.scraper.util.Constants.PRODUCT_TYPE;
 import com.kutay.scraper.util.Constants.TRADE_TYPE;
 import com.kutay.scraper.util.ScraperException;
 
+import jakarta.transaction.Transactional;
+
 public class HouseFactory extends ProductFactory {
     private static final Log logger = LogFactory.getLog(HouseFactory.class);
 
@@ -28,7 +30,6 @@ public class HouseFactory extends ProductFactory {
 
     @Override
     public House create(ApiEndpoint apiEndpoint, ApiResponseParser apiResponseParser) {
-
         Product product = createProduct(apiEndpoint, apiResponseParser);
 
         if (product == null) {
@@ -41,7 +42,7 @@ public class HouseFactory extends ProductFactory {
             city = (String) getFieldValue(apiResponseParser, "city", String.class, true);
             postalCode = (String) getFieldValue(apiResponseParser, "postalCode", String.class, true);
         } catch (ScraperException e) {
-            logger.error(String.format(CANT_PARSE_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
+            logger.warn(String.format(CANT_PARSE_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
             return null;
         }
 
@@ -68,7 +69,7 @@ public class HouseFactory extends ProductFactory {
             furnished = (Boolean) getFieldValue(apiResponseParser, "furnished", Boolean.class, false);
             serviceCost = (BigDecimal) getFieldValue(apiResponseParser, "serviceCost", BigDecimal.class, false);
         } catch (ScraperException e) {
-            logger.error(String.format(UNEXPECTED_EXCEPTION_FOR_NON_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
+            logger.warn(String.format(UNEXPECTED_EXCEPTION_FOR_NON_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
         }
 
         return new House(city, postalCode, energyLabel, propertyType, livingArea, constructionYear, story,
@@ -77,6 +78,7 @@ public class HouseFactory extends ProductFactory {
     }
 
     @Override
+    @Transactional
     public void updateProducts(List<ScrapedProduct> scrapedProducts, Map<String, List<String>> requestParameters) {
         logger.info(String.format("Scraped House Count: %s", scrapedProducts.size()));
         saveOrUpdate(scrapedProducts);

@@ -25,8 +25,6 @@ import com.kutay.scraper.util.Constants.PRODUCT_TYPE;
 import com.kutay.scraper.util.Constants.TRADE_TYPE;
 import com.kutay.scraper.util.ScraperException;
 
-import jakarta.transaction.Transactional;
-
 @Service
 public abstract class ProductFactory {
     protected static final String ID_IN_SITE_DELIMITER = "_";
@@ -61,7 +59,6 @@ public abstract class ProductFactory {
 
     public abstract ScrapedProduct create(ApiEndpoint apiEndpoint, ApiResponseParser apiResponseParser);
 
-    @Transactional
     public abstract void updateProducts(List<ScrapedProduct> scrapedProducts,
             Map<String, List<String>> requestParameters);
 
@@ -71,11 +68,12 @@ public abstract class ProductFactory {
         String name = null;
         String description = null;
         String status = null;
+        List<ApiEndpoint> imageEndpoints = null;
         try {
             idInSite = buildIdInSite(apiEndpoint);
             price = (BigDecimal) getFieldValue(apiResponseParser, "price", BigDecimal.class, true);
         } catch (ScraperException e) {
-            logger.error(String.format(SKIPPED_PRODUCT, apiEndpoint, e.getMessage()));
+            logger.warn(String.format(SKIPPED_PRODUCT, apiEndpoint, e.getMessage()));
             return null;
         }
 
@@ -83,12 +81,13 @@ public abstract class ProductFactory {
             name = (String) getFieldValue(apiResponseParser, "name", String.class, false);
             description = (String) getFieldValue(apiResponseParser, "description", String.class, false);
             status = (String) getFieldValue(apiResponseParser, "status", String.class, false);
+            imageEndpoints = getEndpointValues(apiResponseParser, "images", false);
         } catch (ScraperException e) {
-            logger.error(String.format(UNEXPECTED_EXCEPTION_FOR_NON_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
+            logger.warn(String.format(UNEXPECTED_EXCEPTION_FOR_NON_MANDATORY_FIELD, apiEndpoint, e.getMessage()));
         }
 
         return new Product(idInSite, name, tradeType, productType, siteName, description, price,
-                status, apiEndpoint, null, null, null, null, null);
+                status, apiEndpoint, null, null, null, null, imageEndpoints);
     }
 
     protected String buildIdInSite(ApiEndpoint apiEndpoint) {
@@ -126,12 +125,39 @@ public abstract class ProductFactory {
             if (mandatory) {
                 throw ex;
             }
-            logger.error(String.format(CANT_PARSE_FIELD, fieldName, ex.getMessage()));
+            logger.warn(String.format(CANT_PARSE_FIELD, fieldName, ex.getMessage()));
         } catch (Exception e) {
             if (mandatory) {
                 throw new ScraperException(String.format(CANT_PARSE_MANDATORY_FIELD, fieldName, e.getMessage()));
             }
-            logger.error(String.format(CANT_PARSE_FIELD, fieldName, e.getMessage()));
+            logger.warn(String.format(CANT_PARSE_FIELD, fieldName, e.getMessage()));
+        }
+
+        return null;
+    }
+
+    protected List<ApiEndpoint> getEndpointValues(ApiResponseParser apiResponseParser, String fieldName,
+            boolean mandatory) throws ScraperException {
+        try {
+            List<ApiEndpoint> parsedEndpoints = apiResponseParser.parseEndpoints(fieldName);
+
+            if (!parsedEndpoints.isEmpty()) {
+                return parsedEndpoints;
+            } else {
+                if (mandatory) {
+                    throw new ScraperException(String.format(EMPTY_MANDATORY_FIELD_PARSED, fieldName));
+                }
+            }
+        } catch (ScraperException ex) {
+            if (mandatory) {
+                throw ex;
+            }
+            logger.warn(String.format(CANT_PARSE_FIELD, fieldName, ex.getMessage()));
+        } catch (Exception e) {
+            if (mandatory) {
+                throw new ScraperException(String.format(CANT_PARSE_MANDATORY_FIELD, fieldName, e.getMessage()));
+            }
+            logger.warn(String.format(CANT_PARSE_FIELD, fieldName, e.getMessage()));
         }
 
         return null;
@@ -150,7 +176,7 @@ public abstract class ProductFactory {
                 digitStarted = true;
             } else if (digitStarted && c == '.') {
                 numberBuilder.append(c);
-            } else if (digitStarted) {
+            } else if (digitStarted && c != ',') {
                 break;
             }
         }
@@ -168,13 +194,15 @@ public abstract class ProductFactory {
         product.setImageApiEndpoints(scrapedProduct.getImageApiEndpoints());
 
         BigDecimal newPrice = scrapedProduct.getPrice();
-        if (!product.getPrice().equals(newPrice)) {
+        if ((product.getPrice() == null && newPrice != null)
+                || (product.getPrice() != null && product.getPrice().compareTo(newPrice) != 0)) {
             product.getPriceHistory().add(new PriceHistory(LocalDateTime.now(), product.getPrice()));
             product.setPrice(newPrice);
         }
 
         String newStatus = scrapedProduct.getStatus();
-        if (!product.getStatus().equals(newStatus)) {
+        if ((product.getStatus() == null && newStatus != null)
+                || (product.getStatus() != null && !product.getStatus().equals(newStatus))) {
             product.getStatusHistory().add(new StatusHistory(LocalDateTime.now(), product.getStatus()));
             product.setStatus(newStatus);
         }
