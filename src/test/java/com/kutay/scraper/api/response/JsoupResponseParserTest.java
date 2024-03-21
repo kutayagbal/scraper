@@ -78,8 +78,7 @@ class JsoupResponseParserTest {
                                 .thenThrow(new RuntimeException(testErrorMessage));
                 when(mockDocument.getElementsByClass(mockKeyParameter0)).thenReturn(expectedElements);
 
-                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0,
-                                mockDocument);
+                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0);
 
                 assertEquals(expectedElement, actualElement);
         }
@@ -100,8 +99,7 @@ class JsoupResponseParserTest {
 
                 when(mockDocument.getElementsByTag(mockTagStr)).thenReturn(expectedElements);
 
-                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0,
-                                mockDocument);
+                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0);
 
                 assertEquals(expectedElement, actualElement);
         }
@@ -123,8 +121,7 @@ class JsoupResponseParserTest {
                 when(mockDocument.getElementsByAttributeValue(mockKeyParameter0, mockValueParameter))
                                 .thenReturn(expectedElements);
 
-                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0,
-                                mockDocument);
+                Element actualElement = jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0);
 
                 assertEquals(expectedElement, actualElement);
         }
@@ -138,7 +135,7 @@ class JsoupResponseParserTest {
                                 null, null, List.of(testAlternativeResponsePath));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 
@@ -148,7 +145,7 @@ class JsoupResponseParserTest {
                                 null, null, Collections.emptyList());
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupResponseParser.applyAlternativeFunctions(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.ELEMENT_COULD_NOT_BE_PARSED, mockAPIResponsePath0));
         }
 
@@ -388,7 +385,7 @@ class JsoupResponseParserTest {
                                 .thenReturn(new Elements(mockElement0, mockElement1));
                 when(mockElement0.getElementsByClass(mockKeyParameter1)).thenReturn(new Elements(mockElement1));
 
-                Element actualElement = jsoupDocumentParser.findElement(mockAPIResponsePath0, mockDocument);
+                Element actualElement = jsoupDocumentParser.findElement(mockAPIResponsePath0);
                 assertEquals(mockElement1, actualElement);
         }
 
@@ -409,7 +406,7 @@ class JsoupResponseParserTest {
                                 .thenReturn(new Elements(mockElement0, mockElement1));
                 when(mockElement0.getElementsByClass(mockKeyParameter1)).thenReturn(new Elements(mockElement1));
 
-                Element actualElement = jsoupDocumentParser.findElement(mockAPIResponsePath0, mockDocument);
+                Element actualElement = jsoupDocumentParser.findElement(mockAPIResponsePath0);
                 assertEquals(mockElement1, actualElement);
         }
 
@@ -431,7 +428,7 @@ class JsoupResponseParserTest {
                 when(mockElement0.getElementsByClass(mockKeyParameter1)).thenReturn(new Elements(mockElement0));
                 when(mockElement1.getElementsByClass(mockKeyParameter1)).thenReturn(new Elements(mockElement1));
 
-                Elements actualElements = jsoupDocumentParser.findElements(mockAPIResponsePath0, mockDocument);
+                Elements actualElements = jsoupDocumentParser.findElements(mockAPIResponsePath0);
                 assertEquals(List.of(mockElement0, mockElement1), actualElements);
         }
 
@@ -442,7 +439,7 @@ class JsoupResponseParserTest {
                 jsoupDocumentParser.setApiResponsePaths(List.of(mockAPIResponsePath0));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupDocumentParser.findElements(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupDocumentParser.findElements(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 
@@ -455,7 +452,7 @@ class JsoupResponseParserTest {
                 jsoupDocumentParser.setApiResponsePaths(List.of(mockAPIResponsePath0));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupDocumentParser.findElements(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupDocumentParser.findElements(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 
@@ -466,7 +463,7 @@ class JsoupResponseParserTest {
                 jsoupDocumentParser.setApiResponsePaths(List.of(mockAPIResponsePath0));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupDocumentParser.findElement(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupDocumentParser.findElement(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 
@@ -479,7 +476,7 @@ class JsoupResponseParserTest {
                 jsoupDocumentParser.setApiResponsePaths(List.of(mockAPIResponsePath0));
 
                 assertThrowsExactly(ScraperException.class,
-                                () -> jsoupDocumentParser.findElement(mockAPIResponsePath0, mockDocument),
+                                () -> jsoupDocumentParser.findElement(mockAPIResponsePath0),
                                 String.format(JsoupResponseParser.NO_API_RESPONSE_FUNCTION, mockAPIResponsePath0));
         }
 

@@ -47,25 +47,25 @@ public class JsoupResponseParser extends ApiResponseParser {
 
         if (StringUtils.hasText(apiResponsePath.getAttribute())) {
             return findString(apiResponsePath,
-                    findElement(apiResponsePath, (Document) getResponse()).attr(apiResponsePath.getAttribute()));
+                    findElement(apiResponsePath).attr(apiResponsePath.getAttribute()));
         }
-        return findString(apiResponsePath, findElement(apiResponsePath, (Document) getResponse()).text());
+        return findString(apiResponsePath, findElement(apiResponsePath).text());
     }
 
-    protected Element findElement(ApiResponsePath apiResponsePath, Document document) throws ScraperException {
+    protected Element findElement(ApiResponsePath apiResponsePath) throws ScraperException {
         List<ApiResponseFunction> apiResponseFunctions = apiResponsePath.getApiResponseFunctions();
         if (apiResponseFunctions == null || apiResponseFunctions.isEmpty()) {
             throw new ScraperException(String.format(NO_API_RESPONSE_FUNCTION, apiResponsePath));
         }
 
-        Element currentElement = document;
+        Element currentElement = (Document) getResponse();
         try {
             for (ApiResponseFunction apiResponseFunction : apiResponseFunctions) {
                 currentElement = getAPIElement(apiResponseFunction, currentElement);
             }
         } catch (Exception e) {
             if (apiResponsePath.getAlternatives() != null && !apiResponsePath.getAlternatives().isEmpty()) {
-                currentElement = applyAlternativeFunctions(apiResponsePath, document);
+                currentElement = applyAlternativeFunctions(apiResponsePath);
             } else {
                 throw e;
             }
@@ -74,7 +74,7 @@ public class JsoupResponseParser extends ApiResponseParser {
         return currentElement;
     }
 
-    protected Element applyAlternativeFunctions(ApiResponsePath apiResponsePath, Document document)
+    protected Element applyAlternativeFunctions(ApiResponsePath apiResponsePath)
             throws ScraperException {
         for (ApiResponsePath currentPath : apiResponsePath.getAlternatives()) {
             List<ApiResponseFunction> apiResponseFunctions = currentPath.getApiResponseFunctions();
@@ -83,7 +83,7 @@ public class JsoupResponseParser extends ApiResponseParser {
                 throw new ScraperException(String.format(NO_API_RESPONSE_FUNCTION, apiResponsePath));
             }
 
-            Element currentElement = document;
+            Element currentElement = (Document) getResponse();
             try {
                 for (ApiResponseFunction apiResponseFunction : apiResponseFunctions) {
                     currentElement = getAPIElement(apiResponseFunction, currentElement);
@@ -147,23 +147,23 @@ public class JsoupResponseParser extends ApiResponseParser {
         ApiResponsePath apiResponsePath = findApiResponsePath(fieldName);
 
         if (StringUtils.hasText(apiResponsePath.getAttribute())) {
-            return findElements(apiResponsePath, (Document) getResponse()).stream()
+            return findElements(apiResponsePath).stream()
                     .map(element -> findString(apiResponsePath, element.attr(apiResponsePath.getAttribute())))
                     .collect(Collectors.toList());
         }
 
-        return findElements(apiResponsePath, (Document) getResponse()).stream()
+        return findElements(apiResponsePath).stream()
                 .map(element -> findString(apiResponsePath, element.text()))
                 .collect(Collectors.toList());
     }
 
-    protected Elements findElements(ApiResponsePath apiResponsePath, Document document) throws ScraperException {
+    protected Elements findElements(ApiResponsePath apiResponsePath) throws ScraperException {
         List<ApiResponseFunction> apiResponseFunctions = apiResponsePath.getApiResponseFunctions();
         if (apiResponseFunctions == null || apiResponseFunctions.isEmpty()) {
             throw new ScraperException(String.format(NO_API_RESPONSE_FUNCTION, apiResponsePath));
         }
 
-        Elements elements = getAPIElements(apiResponsePath.getApiResponseFunctions().get(0), document);
+        Elements elements = getAPIElements(apiResponsePath.getApiResponseFunctions().get(0), (Document) getResponse());
 
         Elements result = new Elements();
         for (Element element : elements) {
