@@ -1,12 +1,18 @@
 package com.kutay.scraper.scrape;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
@@ -15,6 +21,7 @@ import org.springframework.util.StringUtils;
 
 import com.kutay.scraper.api.request.ApiRequest;
 import com.kutay.scraper.api.request.ApiRequestHandler;
+import com.kutay.scraper.api.request.PagedSearchApiCall;
 import com.kutay.scraper.api.response.ApiResponseParser;
 import com.kutay.scraper.db.ProductFactory;
 import com.kutay.scraper.db.entity.site.ApiEndpoint;
@@ -30,7 +37,6 @@ public class SearchScraper extends Scraper {
     public static final String LAST_PAGE_NO_FIELD_NAME = "lastPageNo";
     public static final String PAGING_API_PARAMETER_NAME = "searchPagination";
     public static final String PRODUCT_API_REQUEST_COULD_NOT_BE_HANDLED = "Product API Request could not be handled APIRequest: %s";
-    public static final String PRODUCT_REQUESTS_PER_PAGE = "%s product requests for page %s";
 
     public SearchScraper(TRADE_TYPE tradeType, PRODUCT_TYPE productType, Site site, ApiRequestHandler apiRequestHandler,
             ProductFactory productFactory) {
@@ -47,7 +53,8 @@ public class SearchScraper extends Scraper {
 
         List<ApiRequest> productRequests = searchResponseParser.parseProductApiRequests();
         if (productRequests != null) {
-            logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, productRequests.size(), 1));
+            // logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, productRequests.size(),
+            // 1));
             totalProductRequests.addAll(productRequests);
         }
 
@@ -99,6 +106,39 @@ public class SearchScraper extends Scraper {
         return Collections.emptyList();
     }
 
+    // protected List<ApiRequest> scrapeWithPaging(ApiEndpoint searchEndpoint,
+    // ApiResponseParser searchResponseParser,
+    // Map<String, List<String>> requestParameters) throws ScraperException {
+    // List<ApiRequest> productRequests = new ArrayList<>();
+    // String lastPageNoStr =
+    // searchResponseParser.parseField(LAST_PAGE_NO_FIELD_NAME);
+
+    // if (StringUtils.hasText(lastPageNoStr)) {
+    // int lastPageNo = Integer.parseInt(lastPageNoStr);
+    // if (lastPageNo >= 2) {
+    // Map<String, List<String>> parameters = new HashMap<>();
+    // if (requestParameters != null) {
+    // parameters.putAll(requestParameters);
+    // }
+
+    // ApiRequest searchRequest = null;
+    // List<ApiRequest> requests = new ArrayList<>();
+    // for (int i = 2; i <= lastPageNo; i++) {
+    // parameters.put(PAGING_API_PARAMETER_NAME, List.of(String.valueOf(i)));
+
+    // searchRequest = new ApiRequest(searchEndpoint, parameters);
+    // searchResponseParser = requestHandler.handle(searchRequest);
+    // searchResponseParser.setApiResponsePaths(site.getApiResponsePaths());
+
+    // requests = searchResponseParser.parseProductApiRequests();
+    // productRequests.addAll(requests);
+    // }
+    // }
+    // }
+
+    // return productRequests;
+    // }
+
     protected List<ApiRequest> scrapeWithPaging(ApiEndpoint searchEndpoint, ApiResponseParser searchResponseParser,
             Map<String, List<String>> requestParameters) throws ScraperException {
         List<ApiRequest> productRequests = new ArrayList<>();
@@ -112,19 +152,43 @@ public class SearchScraper extends Scraper {
                     parameters.putAll(requestParameters);
                 }
 
-                ApiRequest searchRequest = null;
-                List<ApiRequest> requests = new ArrayList<>();
+                List<Callable<List<ApiRequest>>> pagedSearchApiCalls = new ArrayList<>();
                 for (int i = 2; i <= lastPageNo; i++) {
-                    parameters.put(PAGING_API_PARAMETER_NAME, List.of(String.valueOf(i)));
+                    pagedSearchApiCalls.add(new PagedSearchApiCall(requestHandler,
+                            new ApiRequest(searchEndpoint, parameters), site.getApiResponsePaths()));
 
-                    searchRequest = new ApiRequest(searchEndpoint, parameters);
-                    searchResponseParser = requestHandler.handle(searchRequest);
-                    searchResponseParser.setApiResponsePaths(site.getApiResponsePaths());
-
-                    requests = searchResponseParser.parseProductApiRequests();
-                    logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, requests.size(), i));
-                    productRequests.addAll(requests);
                 }
+
+                ExecutorService executor = Executors.newWorkStealingPool();
+                List<Future<List<ApiRequest>>> futureAPIRequests = null;
+
+                try {
+                    futureAPIRequests = executor.invokeAll(pagedSearchApiCalls);
+                } catch (InterruptedException e) {
+                    if (Thread.interrupted()) {
+                        Thread.currentThread().interrupt();
+                    }
+
+                    logger.error("INTERRUPTED_EXCEPTION_0 Happened!");
+                    e.printStackTrace();
+                }
+
+                executor.shutdown();
+
+                productRequests = futureAPIRequests.stream().map(f -> {
+                    try {
+                        return f.get();
+                    } catch (InterruptedException e) {
+                        logger.error("INTERRUPTED_EXCEPTION_1 Happened!");
+                        e.printStackTrace();
+                        Thread.currentThread().interrupt();
+                        return null;
+                    } catch (ExecutionException e) {
+                        logger.error("EXECUTION_EXCEPTION Happened!");
+                        e.printStackTrace();
+                        return null;
+                    }
+                }).filter(Objects::nonNull).flatMap(Collection::stream).collect(Collectors.toList());
             }
         }
 
