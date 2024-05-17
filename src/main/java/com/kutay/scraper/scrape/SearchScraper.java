@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 import com.kutay.scraper.api.request.ApiRequest;
 import com.kutay.scraper.api.request.ApiRequestHandler;
 import com.kutay.scraper.api.request.PagedSearchApiCall;
+import com.kutay.scraper.api.request.ProductApiCall;
 import com.kutay.scraper.api.response.ApiResponseParser;
 import com.kutay.scraper.db.ProductFactory;
 import com.kutay.scraper.db.entity.site.ApiEndpoint;
@@ -53,8 +54,6 @@ public class SearchScraper extends Scraper {
 
         List<ApiRequest> productRequests = searchResponseParser.parseProductApiRequests();
         if (productRequests != null) {
-            // logger.info(String.format(PRODUCT_REQUESTS_PER_PAGE, productRequests.size(),
-            // 1));
             totalProductRequests.addAll(productRequests);
         }
 
@@ -75,19 +74,31 @@ public class SearchScraper extends Scraper {
     }
 
     protected List<ScrapedProduct> scrapeProducts(List<ApiRequest> requests) {
-        return requests.stream().map(request -> {
-            ApiResponseParser responseParser = null;
-            try {
-                responseParser = requestHandler.handle(request);
-                responseParser.setApiResponsePaths(site.getApiResponsePaths());
-            } catch (ScraperException e) {
-                logger.warn(String.format(PRODUCT_API_REQUEST_COULD_NOT_BE_HANDLED, request), e);
-                return null;
-            }
+        List<Callable<ScrapedProduct>> productApiCalls = new ArrayList<>();
 
+        requests.stream().forEach(request -> productApiCalls
+                .add(new ProductApiCall(requestHandler, request, site.getApiResponsePaths(), productFactory)));
+
+        List<Future<ScrapedProduct>> futureProducts = null;
+        ExecutorService executor = Executors.newWorkStealingPool();
+        try {
+            futureProducts = executor.invokeAll(productApiCalls);
+        } catch (InterruptedException e) {
+            e.getCause().printStackTrace();
+            Thread.currentThread().interrupt();
+        }
+
+        executor.shutdown();
+
+        return futureProducts.stream().map(f -> {
             try {
-                return productFactory.create(request.getApiEndpoint(), responseParser);
-            } catch (Exception e) {
+                return f.get();
+            } catch (InterruptedException e) {
+                e.getCause().printStackTrace();
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (ExecutionException e) {
+                e.getCause().printStackTrace();
                 return null;
             }
         }).filter(Objects::nonNull).collect(Collectors.toList());
@@ -105,39 +116,6 @@ public class SearchScraper extends Scraper {
         }
         return Collections.emptyList();
     }
-
-    // protected List<ApiRequest> scrapeWithPaging(ApiEndpoint searchEndpoint,
-    // ApiResponseParser searchResponseParser,
-    // Map<String, List<String>> requestParameters) throws ScraperException {
-    // List<ApiRequest> productRequests = new ArrayList<>();
-    // String lastPageNoStr =
-    // searchResponseParser.parseField(LAST_PAGE_NO_FIELD_NAME);
-
-    // if (StringUtils.hasText(lastPageNoStr)) {
-    // int lastPageNo = Integer.parseInt(lastPageNoStr);
-    // if (lastPageNo >= 2) {
-    // Map<String, List<String>> parameters = new HashMap<>();
-    // if (requestParameters != null) {
-    // parameters.putAll(requestParameters);
-    // }
-
-    // ApiRequest searchRequest = null;
-    // List<ApiRequest> requests = new ArrayList<>();
-    // for (int i = 2; i <= lastPageNo; i++) {
-    // parameters.put(PAGING_API_PARAMETER_NAME, List.of(String.valueOf(i)));
-
-    // searchRequest = new ApiRequest(searchEndpoint, parameters);
-    // searchResponseParser = requestHandler.handle(searchRequest);
-    // searchResponseParser.setApiResponsePaths(site.getApiResponsePaths());
-
-    // requests = searchResponseParser.parseProductApiRequests();
-    // productRequests.addAll(requests);
-    // }
-    // }
-    // }
-
-    // return productRequests;
-    // }
 
     protected List<ApiRequest> scrapeWithPaging(ApiEndpoint searchEndpoint, ApiResponseParser searchResponseParser,
             Map<String, List<String>> requestParameters) throws ScraperException {
@@ -165,12 +143,8 @@ public class SearchScraper extends Scraper {
                 try {
                     futureAPIRequests = executor.invokeAll(pagedSearchApiCalls);
                 } catch (InterruptedException e) {
-                    if (Thread.interrupted()) {
-                        Thread.currentThread().interrupt();
-                    }
-
-                    logger.error("INTERRUPTED_EXCEPTION_0 Happened!");
-                    e.printStackTrace();
+                    e.getCause().printStackTrace();
+                    Thread.currentThread().interrupt();
                 }
 
                 executor.shutdown();
@@ -179,13 +153,11 @@ public class SearchScraper extends Scraper {
                     try {
                         return f.get();
                     } catch (InterruptedException e) {
-                        logger.error("INTERRUPTED_EXCEPTION_1 Happened!");
-                        e.printStackTrace();
+                        e.getCause().printStackTrace();
                         Thread.currentThread().interrupt();
                         return null;
                     } catch (ExecutionException e) {
-                        logger.error("EXECUTION_EXCEPTION Happened!");
-                        e.printStackTrace();
+                        e.getCause().printStackTrace();
                         return null;
                     }
                 }).filter(Objects::nonNull).flatMap(Collection::stream).collect(Collectors.toList());
